@@ -9,15 +9,16 @@ Try the app here: [https://real-time-chat-app-mjh9.onrender.com/](https://real-t
 ## Features
 
 - User authentication and registration
-- Real-time messaging (one-to-one and/or group chat)
+- Real-time messaging (one-to-one)
 - Online user presence indication
 - Message history and persistence
 - Responsive user interface
 - Notifications for new messages
+- 32 different themes
 
 ## Tech Stack
 
-- **Frontend:** React.js / Vue.js / daisyui
+- **Frontend:** React.js / Vue.js / daisyui / tailwindcss
 - **Backend:** Node.js with Express.js (or your backend framework)
 - **Real-time Engine:** Socket.io / WebSocket
 - **Database:** MongoDB / cloudinary
