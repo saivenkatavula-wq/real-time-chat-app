@@ -7,9 +7,9 @@ import authRoutes from "./routes/auth.route.js";
 import messageRoutes from "./routes/message.route.js";
 import {connectDB} from "./lib/db.js";
 import * as bodyParser from "express";
+import {app, server} from "./lib/socket.js";
 
 dotenv.config({ path: '../.env.local' });
-const app = express()
 const PORT = process.env.PORT || 5001;
 
 app.use(bodyParser.json({ limit: "10mb" }));
@@ -24,9 +24,9 @@ app.get('/', (req, res) => {
     res.send("🚀 API is running");
 });
 app.use("/api/auth", authRoutes)
-app.use("/api/message", messageRoutes)
+app.use("/api/messages", messageRoutes)
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log('Server is running on port on PORT:', PORT);
     connectDB()
 });
