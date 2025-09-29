@@ -10,7 +10,7 @@ import {connectDB} from "./lib/db.js";
 import * as bodyParser from "express";
 import {app, server} from "./lib/socket.js";
 
-dotenv.config({ path: '../.env.local' });
+dotenv.config();
 const PORT = process.env.PORT || 5001;
 const __dirname = path.resolve();
 
@@ -19,7 +19,7 @@ app.use(bodyParser.urlencoded({ limit: "10mb", extended: true }));
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
     credentials: true
     }))
 app.get('/', (req, res) => {
