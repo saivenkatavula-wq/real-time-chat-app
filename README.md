@@ -49,13 +49,8 @@ Try the app here: [https://real-time-chat-app-mjh9.onrender.com/](https://real-t
 
 3. Set up environment variables:
    - Create a `.env` file in the root directory
-   - Add necessary environment variables (example below):
-
-     ```
-     PORT=5000
-     MONGODB_URI=your_mongodb_connection_string
-     JWT_SECRET=your_jwt_secret
-     ```
+   - Add necessary environment variables.
+   - Refer .env.example in the backend folder
 
 4. Start the development server:
    ```bash
@@ -64,14 +59,14 @@ Try the app here: [https://real-time-chat-app-mjh9.onrender.com/](https://real-t
    yarn start
    ```
 
-5. Open your browser and visit `http://localhost:5000`
+5. Open your browser and visit `http://localhost:5173`
 
 ## Folder Structure
 
 ```
 real-time-chat-app/
-├── client/         # Frontend code (if applicable)
-├── server/         # Backend code
+├── Frontend/         # Frontend code (if applicable)
+├── Backend/         # Backend code
 ├── package.json
 ├── README.md
 └── ...
