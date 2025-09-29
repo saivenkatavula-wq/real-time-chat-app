@@ -7,7 +7,6 @@ import path from "path"
 import authRoutes from "./routes/auth.route.js";
 import messageRoutes from "./routes/message.route.js";
 import {connectDB} from "./lib/db.js";
-import * as bodyParser from "express";
 import {app, server} from "./lib/socket.js";
 
 dotenv.config();
@@ -32,7 +31,7 @@ if(process.env.NODE_ENV==="production"){
     app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
 
-    app.get("*", (req,res) =>{
+    app.get((req,res) =>{
        res.sendFile(path.join(__dirname, "../frontend", "dist","index.html"));
     });
 }
