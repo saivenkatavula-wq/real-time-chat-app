@@ -21,18 +21,14 @@ app.use(cors({
     origin: process.env.CLIENT_URL || "http://localhost:5173",
     credentials: true
     }))
-app.get('/', (req, res) => {
-    res.send("🚀 API is running");
-});
 app.use("/api/auth", authRoutes)
 app.use("/api/messages", messageRoutes)
 
-if(process.env.NODE_ENV==="production"){
-    app.use(express.static(path.join(__dirname, "../frontend/dist")));
-
-
-    app.get((req,res) =>{
-       res.sendFile(path.join(__dirname, "../frontend", "dist","index.html"));
+if (process.env.NODE_ENV === 'production') {
+    const distPath = path.resolve(__dirname, '../frontend/dist');
+    app.use(express.static(distPath));
+    app.get('/*', (_req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
     });
 }
 
