@@ -27,8 +27,9 @@ app.use("/api/messages", messageRoutes)
 if (process.env.NODE_ENV === 'production') {
     const distPath = path.resolve(__dirname, '../frontend/dist');
     app.use(express.static(distPath));
-    app.get('/:path(*)', (_req, res) => {
-        res.sendFile(path.join(distPath, 'index.html'));
+    app.use((req, res, next) => {
+        if (req.path.startsWith("/api/")) return next();
+        res.sendFile(path.join(distPath, "index.html"));
     });
 }
 
