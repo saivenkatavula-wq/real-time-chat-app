@@ -1,10 +1,15 @@
-import { useState } from "react";
+import {useEffect, useState} from "react";
 import { useAuthStore } from "../store/useAuthStore";
-import { Camera, Mail, User } from "lucide-react";
+import { Camera, Mail, User, IdCard, Save } from "lucide-react";
 
 const ProfilePage = () => {
-    const { authUser, isUpdatingProfile, updateProfile } = useAuthStore();
+    const { authUser, isUpdatingProfile, updateProfile, isUpdatingName, updateName } = useAuthStore();
     const [selectedImg, setSelectedImg] = useState(null);
+    const [fullName, setFullName] = useState(authUser?.fullName || "");
+
+    useEffect(() => {
+        setFullName(authUser?.fullName || "");
+    }, [authUser?.fullName]);
 
     const handleImageUpload = async (e) => {
         const file = e.target.files[0];
@@ -19,6 +24,15 @@ const ProfilePage = () => {
             setSelectedImg(base64Image);
             await updateProfile({ profilePic: base64Image });
         };
+    };
+
+    const handleSubmitName = async (e) => {
+        e.preventDefault();
+        const trimmed = (fullName || "").trim();
+        if (!trimmed) return;
+        // optional: small guard to avoid no-op
+        if (trimmed === authUser?.fullName) return;
+        await updateName({ fullName: trimmed });
     };
 
     return (
@@ -66,20 +80,59 @@ const ProfilePage = () => {
                     </div>
 
                     <div className="space-y-6">
-                        <div className="space-y-1.5">
+                        <form onSubmit={handleSubmitName} className="space-y-2">
                             <div className="text-sm text-zinc-400 flex items-center gap-2">
                                 <User className="w-4 h-4" />
                                 Full Name
                             </div>
-                            <p className="px-4 py-2.5 bg-base-200 rounded-lg border">{authUser?.fullName}</p>
-                        </div>
-
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
+                                    placeholder="Enter your full name"
+                                    className="w-full px-4 py-2.5 bg-base-200 rounded-lg border"
+                                    disabled={isUpdatingName}
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={isUpdatingName || !fullName?.trim() || fullName.trim() === authUser?.fullName}
+                                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-content disabled:opacity-60"
+                                    title="Save name"
+                                >
+                                    <Save className="w-4 h-4" />
+                                    {isUpdatingName ? "Saving..." : "Save"}
+                                </button>
+                            </div>
+                            <p className="text-xs text-zinc-500">Press Enter to save.</p>
+                        </form>
                         <div className="space-y-1.5">
                             <div className="text-sm text-zinc-400 flex items-center gap-2">
                                 <Mail className="w-4 h-4" />
                                 Email Address
                             </div>
-                            <p className="px-4 py-2.5 bg-base-200 rounded-lg border">{authUser?.email}</p>
+
+                            <input
+                                type="email"
+                                value={authUser?.email ?? ""}
+                                disabled
+                                aria-disabled="true"
+                                className="w-full px-4 py-2.5 bg-base-200 rounded-lg border opacity-70 cursor-not-allowed"
+                            />
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <div className="text-sm text-zinc-400 flex items-center gap-2">
+                                <IdCard className="w-4 h-4" />
+                                Users Unique ID
+                            </div>
+                            <input
+                                type="email"
+                                value={authUser?._id ?? ""}
+                                disabled
+                                aria-disabled="true"
+                                className="w-full px-4 py-2.5 bg-base-200 rounded-lg border opacity-70 cursor-not-allowed"
+                            />
                         </div>
                     </div>
 

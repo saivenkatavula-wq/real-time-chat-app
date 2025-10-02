@@ -96,6 +96,22 @@ export const updateProfile = async (req, res) => {
     }
 }
 
+export const updateName = async (req, res) => {
+    try{
+        const {fullName} = req.body;
+        const userId = req.user._id
+
+        if(!fullName){
+            return res.status(400).json({message: 'fullName is required'});
+        }
+        const updatedUserName = await User.findByIdAndUpdate(userId, {fullName:fullName}, {new:true})
+        res.status(200).json(updatedUserName)
+    } catch (error){
+        console.log("Error in updateName controller:", error);
+        res.status(500).json({message: 'Internal server error'});
+    }
+}
+
 export const checkAuth = (req, res) => {
     try{
         res.status(200).json(req.user);
