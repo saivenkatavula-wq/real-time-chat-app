@@ -1,4 +1,3 @@
-// AuthImagePattern.jsx
 import { useMemo } from "react"
 import Avatar, { genConfig } from "react-nice-avatar"
 
@@ -6,7 +5,6 @@ const makeConfigs = (count = 9) =>
     Array.from({ length: count }, (_, i) =>
         genConfig({
             sex: i % 2 === 0 ? "man" : "woman",
-            // tweak variety; you can remove these for fully random
             hairStyle: ["short", "normal", "thick", "mohawk"][i % 4],
             shape: "circle",
         })
@@ -16,7 +14,6 @@ const AuthImagePattern = ({
                               title = "Welcome to Realtime Chat",
                               subtitle = "Create an account or sign in to continue",
                           }) => {
-    // Stable avatar set across re-renders
     const configs = useMemo(() => makeConfigs(9), [])
 
     return (

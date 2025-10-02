@@ -21,7 +21,7 @@ const NoChatSelected = () => {
                     </h2>
                     <p className="text-base-content/70 text-lg leading-relaxed">
                         Select a conversation from the sidebar to start chatting.<br />
-                        Or simply <span className="text-primary font-medium">search for your friends</span> to begin!
+                        Or simply <span className="text-primary font-medium">Add your friends</span> to begin!
                     </p>
                 </div>
             </div>

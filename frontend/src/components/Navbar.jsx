@@ -98,7 +98,7 @@ const Navbar = () => {
     return (
         <>
             <header
-                className="bg-base-100 border-b border-base-300 fixed w-full top-0 z-40
+                className="bg-base-100/80 border-b border-base-300 fixed w-full top-0 z-40
     backdrop-blur-lg bg-base-100/80"
             >
                 <div className="container mx-auto px-4 h-16">
@@ -112,9 +112,9 @@ const Navbar = () => {
                         </Link>
 
                         {authUser && (
-                            <div className="relative hidden sm:block" ref={searchRef}>
-                                <form onSubmit={handleSearchSubmit} className="w-64 lg:w-80">
-                                    <label className="input input-sm input-bordered flex items-center gap-2">
+                            <div className="relative w-full sm:w-auto" ref={searchRef}>
+                                <form onSubmit={handleSearchSubmit} className="w-full sm:w-64 lg:w-80">
+                                    <label className="input input-sm input-bordered flex items-center gap-2 w-full">
                                         <Search className="size-4 text-base-content/60" />
                                         <input
                                             type="search"
