@@ -1,6 +1,7 @@
 import {Server} from "socket.io";
 import http from "http";
 import express from "express";
+import User from "../models/user.model.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -19,17 +20,67 @@ export function getReceiverSocketId(userId) {
 // used to store online users
 const userSocketMap = {};
 
-io.on("connection", (socket) => {
+async function fetchFriendIds(userId) {
+    try {
+        const user = await User.findById(userId).select("friends");
+        if (!user) return [];
+        return user.friends.map((id) => id.toString());
+    } catch (error) {
+        console.error("Error fetching friend ids", error.message);
+        return [];
+    }
+}
+
+export async function emitOnlineFriends(userId, friendsList) {
+    const socketId = userSocketMap[userId];
+    if (!socketId) return;
+
+    const socket = io.sockets.sockets.get(socketId);
+
+    let friendIds = friendsList;
+    if (!friendIds) {
+        friendIds = await fetchFriendIds(userId);
+    }
+
+    if (socket) {
+        socket.friendIds = friendIds || [];
+    }
+
+    const onlineFriendIds = (friendIds || [])
+        .map((id) => id.toString())
+        .filter((id) => Boolean(userSocketMap[id]));
+
+    io.to(socketId).emit("getOnlineUsers", onlineFriendIds);
+}
+
+async function notifyFriends(friendIds) {
+    if (!friendIds || friendIds.length === 0) return;
+    await Promise.all(friendIds.map((friendId) => emitOnlineFriends(friendId.toString())));
+}
+
+io.on("connection", async (socket) => {
     console.log("A user connected", socket.id);
 
     const userId = socket.handshake.query.userId
-    if(userId) userSocketMap[userId] = socket.id
-    io.emit("getOnlineUsers", Object.keys(userSocketMap));
+    if(userId) {
+        userSocketMap[userId] = socket.id
+        socket.userId = userId;
 
-    socket.on("disconnect", () => {
+        const friendIds = await fetchFriendIds(userId);
+        socket.friendIds = friendIds;
+
+        await emitOnlineFriends(userId, friendIds);
+        await notifyFriends(friendIds);
+    }
+
+    socket.on("disconnect", async () => {
         console.log("A user disconnected", socket.id);
         delete userSocketMap[userId];
-        io.emit("getOnlineUsers", Object.keys(userSocketMap));
+
+        if (userId) {
+            const friendIds = socket.friendIds || (await fetchFriendIds(userId));
+            await notifyFriends(friendIds);
+        }
     });
 });
 

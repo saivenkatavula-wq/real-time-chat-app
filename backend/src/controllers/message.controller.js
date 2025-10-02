@@ -5,10 +5,12 @@ import {getReceiverSocketId, io} from "../lib/socket.js";
 
 export const getUsersForSidebar = async(req, res) => {
     try{
-        const loggedInUserId = req.user._id;
-        const filteredUsers = await User.find({_id:{$ne:loggedInUserId}}).select("-password");
+        const userWithFriends = await User.findById(req.user._id).populate(
+            "friends",
+            "fullName email profilePic"
+        );
 
-        res.status(200).json(filteredUsers)
+        res.status(200).json(userWithFriends?.friends || []);
     }catch (error){
         console.error("Error in getUsersForSidebar:", error.message);
         res.status(500).json({error: "Internal server error"});
@@ -21,12 +23,17 @@ export const getMessages = async(req, res) => {
         const {id: userToChatId} = req.params
         const myId = req.user._id;
 
+        const isFriend = req.user.friends?.some((friendId) => friendId.toString() === userToChatId);
+        if (!isFriend) {
+            return res.status(403).json({error: "You can only view messages from friends"});
+        }
+
         const messages = await Message.find({
             $or: [
                 {senderId: myId, receiverId: userToChatId},
                 {senderId: userToChatId, receiverId: myId}
             ]
-        })
+        }).sort({createdAt: 1});
         res.status(200).json(messages)
     } catch (error){
         console.log("Error in getMessages controller: ", error.message);
@@ -39,6 +46,11 @@ export const sendMessage = async(req, res) => {
         const {text, image} = req.body;
         const {id: receiverId} = req.params;
         const senderId = req.user._id;
+
+        const isFriend = req.user.friends?.some((friendId) => friendId.toString() === receiverId);
+        if (!isFriend) {
+            return res.status(403).json({error: "You can only message your friends"});
+        }
 
         let imageUrl;
         if (image) {

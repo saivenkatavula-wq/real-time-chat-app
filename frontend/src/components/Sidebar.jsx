@@ -1,24 +1,35 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import SidebarSkeleton from "./skeletons/SidebarSkeleton";
 import { Users } from "lucide-react";
+import { useFriendStore } from "../store/useFriendStore";
 
 const Sidebar = () => {
-    const { getUsers, users, selectedUser, setSelectedUser, isUsersLoading } = useChatStore();
-
+    const { selectedUser, setSelectedUser } = useChatStore();
     const { onlineUsers } = useAuthStore();
+    const {
+        friends,
+        fetchFriends,
+        isLoadingFriends,
+    } = useFriendStore();
     const [showOnlineOnly, setShowOnlineOnly] = useState(false);
-
     useEffect(() => {
-        getUsers();
-    }, [getUsers]);
+        if (!friends.length) {
+            fetchFriends();
+        }
+    }, [fetchFriends, friends.length]);
 
-    const filteredUsers = showOnlineOnly
-        ? users.filter((user) => onlineUsers.includes(user._id))
-        : users;
+    const onlineFriendsCount = onlineUsers.length;
 
-    if (isUsersLoading) return <SidebarSkeleton />;
+    const filteredUsers = useMemo(() => {
+        const list = showOnlineOnly
+            ? friends.filter((user) => onlineUsers.includes(user._id))
+            : friends;
+        return list;
+    }, [friends, onlineUsers, showOnlineOnly]);
+
+    if (isLoadingFriends) return <SidebarSkeleton />;
 
     return (
         <aside className="h-full w-20 lg:w-72 border-r border-base-300 flex flex-col transition-all duration-200">
@@ -27,7 +38,7 @@ const Sidebar = () => {
                     <Users className="size-6" />
                     <span className="font-medium hidden lg:block">Contacts</span>
                 </div>
-                <div className="mt-3 hidden lg:flex items-center gap-2">
+                <div className="mt-3 hidden lg:flex items-center gap-2 justify-between">
                     <label className="cursor-pointer flex items-center gap-2">
                         <input
                             type="checkbox"
@@ -37,7 +48,10 @@ const Sidebar = () => {
                         />
                         <span className="text-sm">Show online only</span>
                     </label>
-                    <span className="text-xs text-zinc-500">({onlineUsers.length - 1} online)</span>
+                    <span className="text-xs text-zinc-500">{onlineFriendsCount} online</span>
+                </div>
+                <div className="mt-3 flex lg:hidden items-center justify-between">
+                    <span className="text-xs text-zinc-500">{onlineFriendsCount} online</span>
                 </div>
             </div>
 
@@ -77,7 +91,9 @@ const Sidebar = () => {
                 ))}
 
                 {filteredUsers.length === 0 && (
-                    <div className="text-center text-zinc-500 py-4">No online users</div>
+                    <div className="text-center text-zinc-500 py-4">
+                        {showOnlineOnly ? "No friends online" : "No friends yet"}
+                    </div>
                 )}
             </div>
         </aside>

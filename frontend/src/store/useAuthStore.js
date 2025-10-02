@@ -2,6 +2,7 @@ import {create} from "zustand"
 import {axiosInstance} from "../lib/axios.js";
 import toast from "react-hot-toast";
 import {io} from "socket.io-client"
+import {useFriendStore} from "./useFriendStore.js";
 
 const BASE_URL= import.meta.env.MODE === "development" ? "http://localhost:5001" : "/";
 export const useAuthStore = create((set, get) => ({
@@ -20,10 +21,14 @@ export const useAuthStore = create((set, get) => ({
             const res = await axiosInstance.get("/auth/check");
 
             set({authUser: res.data});
+            const friendStore = useFriendStore.getState();
+            friendStore.fetchFriends();
+            friendStore.fetchPendingRequests();
             get().connectSocket()
         }catch (error) {
             console.log("Error in checkAuth: ", error);
             set({authUser: null});
+            useFriendStore.getState().reset();
         }finally {
             set({isCheckingAuth: false});
         }
@@ -35,8 +40,10 @@ export const useAuthStore = create((set, get) => ({
             const res = await axiosInstance.post("/auth/signup", data);
             set({authUser: res.data});
             toast.success("Account created successfully");
+            useFriendStore.getState().reset();
+            get().connectSocket();
         } catch (error){
-            toast.error(error.response.data.message);
+            toast.error(error.response?.data?.message || "Failed to sign up");
             console.log("Error in signup: ", error);
         } finally{
             set({isSigningUp: false});
@@ -50,9 +57,12 @@ export const useAuthStore = create((set, get) => ({
             set({authUser: res.data});
             toast.success("logged in successfully");
 
+            const friendStore = useFriendStore.getState();
+            friendStore.fetchFriends();
+            friendStore.fetchPendingRequests();
             get().connectSocket()
         } catch (error) {
-            toast.error(error.response.data.message);
+            toast.error(error.response?.data?.message || "Failed to login");
         }finally {
             set({isLoggingIn: false});
         }
@@ -64,20 +74,21 @@ export const useAuthStore = create((set, get) => ({
             set({authUser: null});
             toast.success("Logged out successfully");
             get().disconnectSocket();
+            useFriendStore.getState().reset();
         } catch (error) {
-            toast.error(error.reponse.data.message);
+            toast.error(error.response?.data?.message || "Failed to logout");
         }
     },
 
     updateProfile: async (data) => {
-        set({isUploadingProfile: true});
+        set({isUpdatingProfile: true});
         try{
             const res = await axiosInstance.put("/auth/update-profile", data);
             set({authUser: res.data});
             toast.success("Profile Updated Successfully");
         }catch (error){
             console.log("error in update profile: ", error);
-            toast.error(error.response.data.message);
+            toast.error(error.response?.data?.message || "Failed to update profile");
         } finally {
             set({ isUpdatingProfile: false});
         }
@@ -98,9 +109,25 @@ export const useAuthStore = create((set, get) => ({
         socket.on("getOnlineUsers" ,(userIds) => {
             set({onlineUsers: userIds})
         })
+
+        socket.on("friendRequest:new", (request) => {
+            useFriendStore.getState().addIncomingRequest(request);
+        });
+
+        socket.on("friendRequest:update", (payload) => {
+            useFriendStore.getState().handleRequestUpdate(payload);
+        });
     },
 
     disconnectSocket: () => {
-        if(get().socket?.connected) get().socket.disconnect();
+        const socket = get().socket;
+        if(!socket) return;
+
+        socket.off("getOnlineUsers");
+        socket.off("friendRequest:new");
+        socket.off("friendRequest:update");
+
+        if(socket.connected) socket.disconnect();
+        set({socket: null, onlineUsers: []});
     },
 }));
