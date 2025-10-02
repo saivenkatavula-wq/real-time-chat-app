@@ -68,15 +68,72 @@ export const sendMessage = async(req, res) => {
 
         await newMessage.save();
 
+        const messageResponse = {
+            ...newMessage.toObject(),
+            senderId: newMessage.senderId.toString(),
+            receiverId: newMessage.receiverId.toString(),
+        };
+
         const receiverSocketId = getReceiverSocketId(receiverId);
         if(receiverSocketId){
-            io.to(receiverSocketId).emit("newMessage", newMessage);
+            io.to(receiverSocketId).emit("newMessage", messageResponse);
         }
 
-        res.status(201).json(newMessage)
+        res.status(201).json(messageResponse)
     }catch (error){
         console.log("Error in sendMessage controller: ", error.message);
         res.status(500).json({error: "Internal server error"});
 
+    }
+};
+
+export const deleteMessage = async (req, res) => {
+    try {
+        const { id: messageId } = req.params;
+        const userId = req.user._id.toString();
+
+        const message = await Message.findById(messageId);
+
+        if (!message) {
+            return res.status(404).json({ error: "Message not found" });
+        }
+
+        if (message.senderId.toString() !== userId) {
+            return res.status(403).json({ error: "You can only delete your own messages" });
+        }
+
+        if (!message.isDeleted) {
+            message.text = "";
+            message.image = null;
+            message.isDeleted = true;
+            message.deletedAt = new Date();
+            message.deletedBy = req.user._id;
+
+            await message.save();
+        }
+
+        const messageResponse = {
+            ...message.toObject(),
+            senderId: message.senderId.toString(),
+            receiverId: message.receiverId.toString(),
+            deletedBy: message.deletedBy?.toString() || null,
+        };
+
+        const participants = [
+            message.senderId.toString(),
+            message.receiverId.toString(),
+        ];
+
+        participants.forEach((participantId) => {
+            const socketId = getReceiverSocketId(participantId);
+            if (socketId) {
+                io.to(socketId).emit("messageDeleted", messageResponse);
+            }
+        });
+
+        res.status(200).json(messageResponse);
+    } catch (error) {
+        console.log("Error in deleteMessage controller: ", error.message);
+        res.status(500).json({ error: "Internal server error" });
     }
 };

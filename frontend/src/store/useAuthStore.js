@@ -141,6 +141,8 @@ export const useAuthStore = create((set, get) => ({
         socket.off("getOnlineUsers");
         socket.off("friendRequest:new");
         socket.off("friendRequest:update");
+        socket.off("newMessage");
+        socket.off("messageDeleted");
 
         if(socket.connected) socket.disconnect();
         set({socket: null, onlineUsers: []});
