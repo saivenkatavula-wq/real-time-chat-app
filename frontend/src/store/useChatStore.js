@@ -7,6 +7,8 @@ export const useChatStore = create((set, get) => ({
     messages: [],
     selectedUser: null,
     isMessagesLoading: false,
+    aiStateByUser: {},
+    isAiLoading: false,
 
     getMessages: async (userId) => {
         set({ isMessagesLoading: true });
@@ -23,7 +25,23 @@ export const useChatStore = create((set, get) => ({
         const { selectedUser } = get();
         try {
             const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
-            set((state) => ({ messages: [...state.messages, res.data] }));
+            set((state) => {
+                const updatedState = {
+                    messages: [...state.messages, res.data],
+                };
+
+                if (selectedUser?._id && state.aiStateByUser[selectedUser._id]) {
+                    updatedState.aiStateByUser = {
+                        ...state.aiStateByUser,
+                        [selectedUser._id]: {
+                            ...state.aiStateByUser[selectedUser._id],
+                            suggestion: null,
+                        },
+                    };
+                }
+
+                return updatedState;
+            });
         } catch (error) {
             toast.error(error.response?.data?.message || "Failed to send message");
         }
@@ -91,4 +109,116 @@ export const useChatStore = create((set, get) => ({
     },
 
     setSelectedUser: (selectedUser) => set({ selectedUser }),
+
+    setAiModeForUser: (userId, enabled) =>
+        set((state) => {
+            if (!userId) return state;
+
+            const existing = state.aiStateByUser[userId];
+            const nextTone = enabled ? existing?.tone ?? null : null;
+            const nextSuggestion = enabled ? existing?.suggestion ?? null : null;
+
+            if (
+                existing &&
+                existing.enabled === enabled &&
+                existing.tone === nextTone &&
+                existing.suggestion === nextSuggestion
+            ) {
+                return state;
+            }
+
+            return {
+                aiStateByUser: {
+                    ...state.aiStateByUser,
+                    [userId]: {
+                        tone: nextTone,
+                        enabled,
+                        suggestion: nextSuggestion,
+                    },
+                },
+            };
+        }),
+
+    setAiToneForUser: (userId, tone) =>
+        set((state) => {
+            if (!userId) return state;
+
+            const existing = state.aiStateByUser[userId];
+            if (existing && existing.tone === tone && existing.suggestion === null) {
+                return state;
+            }
+
+            const base = existing ?? { enabled: true, tone: null, suggestion: null };
+
+            return {
+                aiStateByUser: {
+                    ...state.aiStateByUser,
+                    [userId]: {
+                        ...base,
+                        enabled: true,
+                        tone,
+                        suggestion: null,
+                    },
+                },
+            };
+        }),
+
+    fetchAiSuggestion: async (userId) => {
+        const { aiStateByUser } = get();
+        const tone = aiStateByUser[userId]?.tone;
+
+        if (!tone) {
+            toast.error("Select a tone to get a suggestion");
+            return null;
+        }
+
+        set({ isAiLoading: true });
+        try {
+            const res = await axiosInstance.post(`/ai/suggest-reply/${userId}`, { tone });
+            const suggestion = res.data?.suggestion ?? "";
+
+            if (!suggestion) {
+                toast.error("AI did not provide a suggestion");
+                return null;
+            }
+
+            set((state) => ({
+                aiStateByUser: {
+                    ...state.aiStateByUser,
+                    [userId]: {
+                        ...state.aiStateByUser[userId],
+                        enabled: true,
+                        tone,
+                        suggestion,
+                    },
+                },
+                isAiLoading: false,
+            }));
+
+            return suggestion;
+        } catch (error) {
+            toast.error(error.response?.data?.error || "Failed to fetch AI suggestion");
+            return null;
+        } finally {
+            set((state) => (state.isAiLoading ? { isAiLoading: false } : state));
+        }
+    },
+
+    clearAiSuggestion: (userId) =>
+        set((state) => {
+            const existing = state.aiStateByUser[userId];
+            if (!existing || !existing.suggestion) {
+                return state;
+            }
+
+            return {
+                aiStateByUser: {
+                    ...state.aiStateByUser,
+                    [userId]: {
+                        ...existing,
+                        suggestion: null,
+                    },
+                },
+            };
+        }),
 }));
