@@ -10,6 +10,8 @@ import {useThemeStore} from "./store/useThemeStore.js";
 import {useEffect} from "react";
 import {Loader} from "lucide-react"
 import {Toaster} from "react-hot-toast";
+import IncomingCallModal from "./components/call/IncomingCallModal.jsx";
+import CallOverlay from "./components/call/CallOverlay.jsx";
 
 const App = () => {
     const {authUser, checkAuth, isCheckingAuth, onlineUsers} = useAuthStore()
@@ -27,6 +29,8 @@ const App = () => {
     return (
         <div data-theme={theme}>
             <Navbar/>
+            <IncomingCallModal />
+            <CallOverlay />
             <Routes>
                 <Route path="/" element={authUser ? <HomePage/>: <Navigate to="/login"/> } />
                 <Route path="/signup" element={!authUser ? <SignUpPage/> : <Navigate to = "/" />} />

@@ -73,6 +73,64 @@ io.on("connection", async (socket) => {
         await notifyFriends(friendIds);
     }
 
+    socket.on("call:offer", ({ targetUserId, offer, callType, caller }) => {
+        if (!userId || !targetUserId || !offer) return;
+
+        const targetSocketId = userSocketMap[targetUserId];
+        if (!targetSocketId) {
+            io.to(socket.id).emit("call:error", { message: "User is offline" });
+            return;
+        }
+
+        io.to(targetSocketId).emit("call:offer", {
+            offer,
+            callType,
+            caller: {
+                _id: userId,
+                fullName: caller?.fullName || "Unknown caller",
+                profilePic: caller?.profilePic || null,
+            },
+        });
+    });
+
+    socket.on("call:answer", ({ targetUserId, answer }) => {
+        if (!userId || !targetUserId || !answer) return;
+        const targetSocketId = userSocketMap[targetUserId];
+        if (!targetSocketId) {
+            io.to(socket.id).emit("call:error", { message: "User is offline" });
+            return;
+        }
+
+        io.to(targetSocketId).emit("call:answer", { answer });
+    });
+
+    socket.on("call:ice-candidate", ({ targetUserId, candidate }) => {
+        if (!userId || !targetUserId || !candidate) return;
+        const targetSocketId = userSocketMap[targetUserId];
+        if (!targetSocketId) return;
+        io.to(targetSocketId).emit("call:ice-candidate", { candidate });
+    });
+
+    socket.on("call:decline", ({ targetUserId, reason }) => {
+        if (!userId || !targetUserId) return;
+        const targetSocketId = userSocketMap[targetUserId];
+        if (!targetSocketId) {
+            io.to(socket.id).emit("call:end", { reason: "offline" });
+            return;
+        }
+        io.to(targetSocketId).emit("call:decline", { reason });
+    });
+
+    socket.on("call:end", ({ targetUserId, reason }) => {
+        if (!userId || !targetUserId) return;
+        const targetSocketId = userSocketMap[targetUserId];
+        if (!targetSocketId) {
+            io.to(socket.id).emit("call:end", { reason: "offline" });
+            return;
+        }
+        io.to(targetSocketId).emit("call:end", { reason: reason || "ended" });
+    });
+
     socket.on("disconnect", async () => {
         console.log("A user disconnected", socket.id);
         delete userSocketMap[userId];
