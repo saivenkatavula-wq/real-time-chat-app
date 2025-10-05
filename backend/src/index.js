@@ -9,6 +9,7 @@ import messageRoutes from "./routes/message.route.js";
 import friendRoutes from "./routes/friend.route.js";
 import userRoutes from "./routes/user.route.js";
 import aiRoutes from "./routes/ai.route.js";
+import webrtcRoutes from "./routes/webrtc.route.js";
 import {connectDB} from "./lib/db.js";
 import {app, server} from "./lib/socket.js";
 
@@ -29,6 +30,7 @@ app.use("/api/messages", messageRoutes)
 app.use("/api/friends", friendRoutes)
 app.use("/api/users", userRoutes)
 app.use("/api/ai", aiRoutes)
+app.use("/api/webrtc", webrtcRoutes)
 
 if (process.env.NODE_ENV === 'production') {
     const distPath = path.resolve(__dirname, '../frontend/dist');

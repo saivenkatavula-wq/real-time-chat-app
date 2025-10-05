@@ -133,7 +133,7 @@ export const useCallStore = create((set, get) => ({
 
         try {
             const localStream = await getUserMediaStream(callType);
-            const peerConnection = createPeerConnection({
+            const peerConnection = await createPeerConnection({
                 onIceCandidate: (candidate) => {
                     socket.emit("call:ice-candidate", {
                         targetUserId: callee._id,
@@ -205,7 +205,7 @@ export const useCallStore = create((set, get) => ({
         try {
             const { callType, caller, offer } = incomingCall;
             const localStream = await getUserMediaStream(callType);
-            const peerConnection = createPeerConnection({
+            const peerConnection = await createPeerConnection({
                 onIceCandidate: (candidate) => {
                     socket.emit("call:ice-candidate", {
                         targetUserId: caller._id,

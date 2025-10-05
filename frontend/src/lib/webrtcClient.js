@@ -1,6 +1,37 @@
-const DEFAULT_ICE_SERVERS = [
+import { axiosInstance } from "./axios";
+
+const FALLBACK_ICE_SERVERS = [
     { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
 ];
+
+let cachedIceServers = null;
+let iceCacheExpiresAt = 0;
+const ICE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+async function fetchIceServersFromBackend() {
+    try {
+        const response = await axiosInstance.get("/webrtc/ice");
+        const servers = response.data?.iceServers;
+        if (Array.isArray(servers) && servers.length > 0) {
+            return servers;
+        }
+    } catch (error) {
+        console.error("Failed to fetch ICE servers from backend", error);
+    }
+
+    return FALLBACK_ICE_SERVERS;
+}
+
+export async function getIceServers() {
+    const now = Date.now();
+    if (cachedIceServers && iceCacheExpiresAt > now) {
+        return cachedIceServers;
+    }
+
+    cachedIceServers = await fetchIceServersFromBackend();
+    iceCacheExpiresAt = now + ICE_CACHE_TTL_MS;
+    return cachedIceServers;
+}
 
 export const CallType = Object.freeze({
     AUDIO: "audio",
@@ -33,8 +64,9 @@ export async function getUserMediaStream(callType) {
     return navigator.mediaDevices.getUserMedia(constraints);
 }
 
-export function createPeerConnection({ onIceCandidate, onRemoteStream, onConnectionStateChange } = {}) {
-    const pc = new RTCPeerConnection({ iceServers: DEFAULT_ICE_SERVERS });
+export async function createPeerConnection({ onIceCandidate, onRemoteStream, onConnectionStateChange } = {}) {
+    const iceServers = await getIceServers();
+    const pc = new RTCPeerConnection({ iceServers });
 
     if (typeof onIceCandidate === "function") {
         pc.onicecandidate = (event) => {
