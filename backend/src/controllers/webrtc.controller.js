@@ -6,7 +6,6 @@ const FALLBACK_ICE_SERVERS = [
 
 let cachedIceServers = null;
 let cacheExpiresAt = 0;
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 function isConfigured() {
     return Boolean(process.env.XIRSYS_IDENT && process.env.XIRSYS_SECRET);
@@ -21,7 +20,7 @@ function normalizeIceServers(raw) {
 
 async function requestIceServers() {
     if (!isConfigured()) {
-        return FALLBACK_ICE_SERVERS;
+        return { iceServers: FALLBACK_ICE_SERVERS, ttlMs: 0 };
     }
 
     const ident = process.env.XIRSYS_IDENT;
@@ -56,7 +55,10 @@ async function requestIceServers() {
         throw new Error(`Xirsys response missing iceServers payload: ${JSON.stringify(payload)}`);
     }
 
-    return iceServers;
+    const ttlSeconds = Number(payload?.v?.ttl ?? payload?.ttl ?? 0);
+    const ttlMs = Number.isFinite(ttlSeconds) && ttlSeconds > 0 ? ttlSeconds * 1000 : 60 * 1000;
+
+    return { iceServers, ttlMs };
 }
 
 export async function getIceServers(req, res) {
@@ -66,16 +68,17 @@ export async function getIceServers(req, res) {
             return res.json({ iceServers: cachedIceServers, cached: true });
         }
 
-        const iceServers = await requestIceServers();
+        const { iceServers, ttlMs } = await requestIceServers();
         cachedIceServers = iceServers;
-        cacheExpiresAt = now + CACHE_TTL_MS;
+        cacheExpiresAt = ttlMs > 0 ? now + ttlMs : 0;
 
-        return res.json({ iceServers, cached: false });
+        return res.json({ iceServers, cached: false, ttlMs });
     } catch (error) {
         console.error("Failed to fetch ICE servers", error);
-        const fallback = FALLBACK_ICE_SERVERS;
+        cachedIceServers = null;
+        cacheExpiresAt = 0;
         return res.status(isConfigured() ? 502 : 200).json({
-            iceServers: fallback,
+            iceServers: FALLBACK_ICE_SERVERS,
             cached: false,
             warning: isConfigured() ? "Falling back to STUN servers" : "TURN not configured",
         });
