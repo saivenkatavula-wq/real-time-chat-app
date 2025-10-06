@@ -4,22 +4,26 @@ const FALLBACK_ICE_SERVERS = [
     { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
 ];
 
+const DEFAULT_CACHE_TTL_MS = 60 * 1000; // 1 minute
+
 let cachedIceServers = null;
 let iceCacheExpiresAt = 0;
-const ICE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 async function fetchIceServersFromBackend() {
     try {
         const response = await axiosInstance.get("/webrtc/ice");
         const servers = response.data?.iceServers;
+        const ttlMsRaw = Number(response.data?.ttlMs);
+        const ttlMs = Number.isFinite(ttlMsRaw) && ttlMsRaw > 0 ? ttlMsRaw : DEFAULT_CACHE_TTL_MS;
+
         if (Array.isArray(servers) && servers.length > 0) {
-            return servers;
+            return { iceServers: servers, ttlMs };
         }
     } catch (error) {
         console.error("Failed to fetch ICE servers from backend", error);
     }
 
-    return FALLBACK_ICE_SERVERS;
+    return { iceServers: FALLBACK_ICE_SERVERS, ttlMs: DEFAULT_CACHE_TTL_MS };
 }
 
 export async function getIceServers() {
@@ -28,9 +32,15 @@ export async function getIceServers() {
         return cachedIceServers;
     }
 
-    cachedIceServers = await fetchIceServersFromBackend();
-    iceCacheExpiresAt = now + ICE_CACHE_TTL_MS;
-    return cachedIceServers;
+    const { iceServers, ttlMs } = await fetchIceServersFromBackend();
+    cachedIceServers = iceServers;
+    iceCacheExpiresAt = now + ttlMs;
+    return iceServers;
+}
+
+export function invalidateIceServersCache() {
+    cachedIceServers = null;
+    iceCacheExpiresAt = 0;
 }
 
 export const CallType = Object.freeze({

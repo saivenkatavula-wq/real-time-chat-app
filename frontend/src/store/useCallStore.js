@@ -7,6 +7,7 @@ import {
     createPeerConnection,
     getUserMediaStream,
     stopMediaStream,
+    invalidateIceServersCache,
 } from "../lib/webrtcClient";
 
 const initialState = {
@@ -145,8 +146,9 @@ export const useCallStore = create((set, get) => ({
                 },
                 onConnectionStateChange: (connectionState) => {
                     if (connectionState === "connected") {
-                        set({ callStatus: "connected" });
+                        set({ callStatus: "connected", error: null });
                     } else if (connectionState === "failed" || connectionState === "disconnected") {
+                        console.error('Peer connection state changed', connectionState);
                         get().endCall(true, connectionState);
                     }
                 },
@@ -217,8 +219,9 @@ export const useCallStore = create((set, get) => ({
                 },
                 onConnectionStateChange: (connectionState) => {
                     if (connectionState === "connected") {
-                        set({ callStatus: "connected" });
+                        set({ callStatus: "connected", error: null });
                     } else if (connectionState === "failed" || connectionState === "disconnected") {
+                        console.error('Peer connection state changed', connectionState);
                         get().endCall(true, connectionState);
                     }
                 },
@@ -309,5 +312,6 @@ export const useCallStore = create((set, get) => ({
         const state = get();
         cleanUpMediaResources(state);
         set({ ...initialState, socket: state.socket });
+        invalidateIceServersCache();
     },
 }));
