@@ -12,6 +12,13 @@ function isConfigured() {
     return Boolean(process.env.XIRSYS_IDENT && process.env.XIRSYS_SECRET);
 }
 
+function normalizeIceServers(raw) {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === "object") return [raw];
+    return [];
+}
+
 async function requestIceServers() {
     if (!isConfigured()) {
         return FALLBACK_ICE_SERVERS;
@@ -43,7 +50,7 @@ async function requestIceServers() {
         throw new Error(`Xirsys responded with status ${payload.s}: ${message}`);
     }
 
-    const iceServers = payload?.v?.iceServers || payload?.iceServers;
+    const iceServers = normalizeIceServers(payload?.v?.iceServers || payload?.iceServers);
 
     if (!Array.isArray(iceServers) || iceServers.length === 0) {
         throw new Error(`Xirsys response missing iceServers payload: ${JSON.stringify(payload)}`);
