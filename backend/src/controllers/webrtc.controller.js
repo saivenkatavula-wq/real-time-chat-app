@@ -24,7 +24,7 @@ async function requestIceServers() {
     const authHeader = Buffer.from(`${ident}:${secret}`).toString("base64");
 
     const response = await fetch(`https://global.xirsys.net/_turn/${channel}`, {
-        method: "POST",
+        method: "PUT",
         headers: {
             "Authorization": `Basic ${authHeader}`,
             "Content-Type": "application/json",
@@ -38,10 +38,15 @@ async function requestIceServers() {
     }
 
     const payload = await response.json();
-    const iceServers = payload?.v?.iceServers;
+    if (payload?.s && payload.s !== "ok") {
+        const message = typeof payload?.v === "string" ? payload.v : JSON.stringify(payload?.v);
+        throw new Error(`Xirsys responded with status ${payload.s}: ${message}`);
+    }
+
+    const iceServers = payload?.v?.iceServers || payload?.iceServers;
 
     if (!Array.isArray(iceServers) || iceServers.length === 0) {
-        throw new Error("Xirsys response did not include iceServers");
+        throw new Error(`Xirsys response missing iceServers payload: ${JSON.stringify(payload)}`);
     }
 
     return iceServers;
